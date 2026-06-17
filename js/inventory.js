@@ -1,14 +1,13 @@
 let inventory = JSON.parse(localStorage.getItem("inventory")) || [];
 
 let selectedIndex = null;
-let currentItem = null;
 
 // ================= SAVE =================
-function saveInventory() {
+function save() {
   localStorage.setItem("inventory", JSON.stringify(inventory));
 }
 
-// ================= RENDER TABLE =================
+// ================= RENDER =================
 function renderInventory() {
   const table = document.getElementById("tableBody");
   table.innerHTML = "";
@@ -20,42 +19,30 @@ function renderInventory() {
       <td>${item.name}</td>
       <td>${item.category}</td>
       <td>${item.qty}</td>
-      <td><button onclick="selectItem(${index})">Select</button></td>
+      <td>
+        <button onclick="editItem(${index})">✏ Edit</button>
+        <button onclick="deleteItem(${index})">🗑 Delete</button>
+      </td>
     `;
-
-    if (selectedIndex === index) {
-      row.style.background = "#1f3b82";
-    }
 
     table.appendChild(row);
   });
 
-  saveInventory();
+  save();
 }
 
-// ================= SELECT ITEM =================
-window.selectItem = (index) => {
-  selectedIndex = index;
-  renderInventory();
-};
-
-// ================= FIND ITEM =================
-function findItem(name) {
-  return inventory.find(i => i.name === name);
-}
-
-// ================= ADD ITEM =================
+// ================= ADD =================
 function addItem(item) {
   if (!item) return;
 
-  let existing = findItem(item.name);
+  let existing = inventory.find(i => i.name === item.name);
 
   if (existing) {
     existing.qty += 1;
   } else {
     inventory.push({
       name: item.name,
-      category: item.category || "Unknown",
+      category: item.category || "General",
       qty: 1
     });
   }
@@ -63,70 +50,66 @@ function addItem(item) {
   renderInventory();
 }
 
-// ================= REMOVE ITEM =================
+// ================= REMOVE =================
 function removeItem(item) {
   if (!item) return;
 
-  let existing = findItem(item.name);
+  let existing = inventory.find(i => i.name === item.name);
 
   if (existing) {
     existing.qty -= 1;
 
     if (existing.qty <= 0) {
       inventory = inventory.filter(i => i.name !== item.name);
-      selectedIndex = null;
     }
   }
 
   renderInventory();
 }
 
-// ================= DELETE SELECTED =================
-function deleteSelected() {
-  if (selectedIndex === null) return;
+// ================= DELETE =================
+window.deleteItem = (index) => {
+  inventory.splice(index, 1);
+  renderInventory();
+};
 
-  inventory.splice(selectedIndex, 1);
-  selectedIndex = null;
+// ================= EDIT =================
+window.editItem = (index) => {
+  const item = inventory[index];
+
+  const newName = prompt("Edit name:", item.name);
+  const newCategory = prompt("Edit category:", item.category);
+  const newQty = prompt("Edit quantity:", item.qty);
+
+  if (newName !== null) item.name = newName;
+  if (newCategory !== null) item.category = newCategory;
+  if (newQty !== null) item.qty = Number(newQty);
 
   renderInventory();
-}
-
-// ================= BUTTON HOOKS =================
-document.getElementById("addBtn").onclick = () => {
-  addItem(currentItem);
-};
-
-document.getElementById("removeBtn").onclick = () => {
-  removeItem(currentItem);
-};
-
-document.getElementById("deleteBtn").onclick = () => {
-  deleteSelected();
 };
 
 // ================= SEARCH =================
 document.getElementById("search").addEventListener("input", (e) => {
-  const value = e.target.value.toLowerCase();
+  const val = e.target.value.toLowerCase();
 
-  const rows = document.querySelectorAll("#tableBody tr");
-
-  rows.forEach(row => {
-    row.style.display =
-      row.innerText.toLowerCase().includes(value)
-        ? ""
-        : "none";
+  document.querySelectorAll("#tableBody tr").forEach(row => {
+    row.style.display = row.innerText.toLowerCase().includes(val)
+      ? ""
+      : "none";
   });
 });
 
-// ================= EXCEL EXPORT =================
+// ================= EXPORT =================
 document.getElementById("exportExcel").onclick = () => {
   const ws = XLSX.utils.json_to_sheet(inventory);
   const wb = XLSX.utils.book_new();
-
   XLSX.utils.book_append_sheet(wb, ws, "Inventory");
-
   XLSX.writeFile(wb, "inventory.xlsx");
 };
 
-// ================= INIT =================
+// INIT
 renderInventory();
+
+// expose functions globally
+window.addItem = addItem;
+window.removeItem = removeItem;
