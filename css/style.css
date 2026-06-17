@@ -1,0 +1,156 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Inter", Arial, sans-serif;
+}
+
+body {
+  background: #0b1220;
+  color: #fff;
+}
+
+/* APP LAYOUT */
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 260px;
+  background: #111a2e;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sidebar h2 {
+  margin-bottom: 10px;
+}
+
+.sidebar button {
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  background: #1f2a44;
+  color: white;
+  transition: 0.2s;
+}
+
+.sidebar button:hover {
+  background: #2b3a5e;
+}
+
+.sidebar input {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+}
+
+/* MAIN AREA */
+.main {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 15px;
+}
+
+/* CAMERA CARD */
+.cameraCard {
+  background: #111a2e;
+  padding: 15px;
+  border-radius: 15px;
+  position: relative;
+}
+
+video {
+  width: 100%;
+  border-radius: 12px;
+  background: black;
+}
+
+/* BUTTONS */
+.scanButtons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.scanButtons button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+#scanBtn { background: #3b82f6; color: white; }
+#addBtn { background: #22c55e; color: white; }
+#removeBtn { background: #f59e0b; color: black; }
+#deleteBtn { background: #ef4444; color: white; }
+
+/* INFO */
+.infoCard {
+  background: #111a2e;
+  padding: 15px;
+  border-radius: 15px;
+}
+
+pre {
+  background: #0b1220;
+  padding: 10px;
+  border-radius: 10px;
+  overflow: auto;
+}
+
+/* TABLE */
+.tableCard {
+  grid-column: span 2;
+  background: #111a2e;
+  padding: 15px;
+  border-radius: 15px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 10px;
+  border-bottom: 1px solid #22304f;
+  text-align: left;
+}
+
+tr:hover {
+  background: #1b2742;
+}
+
+/* MOBILE */
+@media (max-width: 900px) {
+  .app {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .main {
+    grid-template-columns: 1fr;
+  }
+
+  .tableCard {
+    grid-column: span 1;
+  }
+}
