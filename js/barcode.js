@@ -2,12 +2,25 @@ let video = document.getElementById("video");
 let canvas = document.getElementById("canvas");
 let ctx = canvas.getContext("2d");
 
-window.currentMode = "barcode";
-window.currentItem = null;
-
 let stream;
 let facing = "environment";
 let model = null;
+
+window.currentItem = null;
+window.currentMode = "barcode";
+
+// ================= SMART CATEGORY =================
+function smartCategory(name) {
+  name = name.toLowerCase();
+
+  if (name.includes("cup") || name.includes("glass")) return "Kitchenware";
+  if (name.includes("bottle") || name.includes("water")) return "Beverage";
+  if (name.includes("phone") || name.includes("laptop")) return "Electronics";
+  if (name.includes("food") || name.includes("snack")) return "Food";
+  if (name.includes("qr")) return "QR Item";
+
+  return "General";
+}
 
 // ================= CAMERA =================
 async function startCamera() {
@@ -31,107 +44,108 @@ document.getElementById("switchCam").onclick = async () => {
 // ================= LOAD AI =================
 cocoSsd.load().then(m => {
   model = m;
-  console.log("COCO-SSD ready");
 });
 
-// ================= MODE UI =================
-function setModeUI(mode) {
-  window.currentMode = mode;
-
-  document.getElementById("modeBarcode").style.background =
-    mode === "barcode" ? "#22c55e" : "#1f2a44";
-
-  document.getElementById("modeAI").style.background =
-    mode === "ai" ? "#22c55e" : "#1f2a44";
-
-  document.getElementById("result").innerText =
-    "Mode: " + mode.toUpperCase();
-}
-
-document.getElementById("modeBarcode").onclick = () => setModeUI("barcode");
-document.getElementById("modeAI").onclick = () => setModeUI("ai");
-
-setModeUI("barcode");
-
-// ================= BARCODE SCAN =================
+// ================= BARCODE =================
 async function scanBarcode() {
-  const codeReader = new ZXing.BrowserMultiFormatReader();
+  const reader = new ZXing.BrowserMultiFormatReader();
 
   try {
-    const result = await codeReader.decodeOnceFromVideoDevice(undefined, video);
+    const res = await reader.decodeOnceFromVideoDevice(undefined, video);
 
     return {
-      name: result.text,
-      category: "Barcode"
+      name: res.text,
+      category: smartCategory(res.text)
     };
   } catch {
     return null;
   }
 }
 
-// ================= AI SCAN =================
+// ================= QR CODE =================
+async function scanQR() {
+  const reader = new ZXing.BrowserQRCodeReader();
+
+  try {
+    const res = await reader.decodeOnceFromVideoDevice(undefined, video);
+
+    return {
+      name: res.text,
+      category: "QR Item"
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ================= AI =================
 async function scanAI() {
   if (!model) return null;
 
-  const predictions = await model.detect(video);
+  const preds = await model.detect(video);
 
-  if (!predictions.length) return null;
+  if (!preds.length) return null;
 
-  const obj = predictions[0];
+  const obj = preds[0];
 
   return {
     name: obj.class,
-    category: "AI Vision"
+    category: smartCategory(obj.class)
   };
 }
 
-// ================= MANUAL FALLBACK =================
+// ================= MANUAL =================
 function manualAdd() {
   const name = prompt("Enter item name:");
   if (!name) return null;
 
-  const category = prompt("Enter category:") || "Manual";
+  const cat = prompt("Category:") || "Manual";
 
-  return { name, category };
+  return { name, category: cat };
 }
+
+// ================= MODE UI =================
+function setMode(mode) {
+  window.currentMode = mode;
+
+  document.getElementById("result").innerText =
+    "Mode: " + mode.toUpperCase();
+}
+
+document.getElementById("modeBarcode").onclick = () => setMode("barcode");
+document.getElementById("modeAI").onclick = () => setMode("ai");
+
+setMode("barcode");
 
 // ================= MAIN SCAN =================
 document.getElementById("scanBtn").onclick = async () => {
-  const resultBox = document.getElementById("result");
 
-  resultBox.innerText = "Scanning...";
+  const box = document.getElementById("result");
+  box.innerText = "Scanning...";
 
   window.currentItem = null;
 
-  // FORCE VIDEO READY
-  await new Promise(r => setTimeout(r, 1200));
+  await new Promise(r => setTimeout(r, 800));
 
   let item = null;
 
-  // MODE LOGIC
-  if (window.currentMode === "barcode") {
-    item = await scanBarcode();
-  }
+  // ORDER: QR → BARCODE → AI → MANUAL
+  item = await scanQR();
+  if (!item) item = await scanBarcode();
+  if (!item) item = await scanAI();
 
-  if (window.currentMode === "ai") {
-    item = await scanAI();
-  }
-
-  // IF NOTHING FOUND → manual fallback
   if (!item) {
-    resultBox.innerText = "Not detected → Manual mode";
-
-    if (confirm("Item not detected. Add manually?")) {
+    if (confirm("Not detected. Add manually?")) {
       item = manualAdd();
     }
   }
 
   if (!item) {
-    resultBox.innerText = "No item added";
+    box.innerText = "No item detected";
     return;
   }
 
   window.currentItem = item;
 
-  resultBox.innerText = JSON.stringify(item, null, 2);
+  box.innerText = JSON.stringify(item, null, 2);
 };
