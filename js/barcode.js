@@ -2,145 +2,136 @@ let video = document.getElementById("video");
 let canvas = document.getElementById("canvas");
 let ctx = canvas.getContext("2d");
 
-let currentStream = null;
-let facingMode = "environment";
+window.currentMode = "barcode";
+window.currentItem = null;
 
+let stream;
+let facing = "environment";
 let model = null;
-let barcodeReader = null;
 
-let aiMode = true;
-
-// ================= START CAMERA =================
+// ================= CAMERA =================
 async function startCamera() {
-  if (currentStream) {
-    currentStream.getTracks().forEach(t => t.stop());
-  }
+  if (stream) stream.getTracks().forEach(t => t.stop());
 
-  currentStream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode }
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: facing }
   });
 
-  video.srcObject = currentStream;
+  video.srcObject = stream;
 }
 
 startCamera();
 
 // ================= SWITCH CAMERA =================
 document.getElementById("switchCam").onclick = async () => {
-  facingMode = facingMode === "environment" ? "user" : "environment";
+  facing = facing === "environment" ? "user" : "environment";
   await startCamera();
 };
 
-// ================= LOAD AI MODEL =================
-async function loadAI() {
-  model = await cocoSsd.load();
-  console.log("AI model loaded");
+// ================= LOAD AI =================
+cocoSsd.load().then(m => {
+  model = m;
+  console.log("COCO-SSD ready");
+});
+
+// ================= MODE UI =================
+function setModeUI(mode) {
+  window.currentMode = mode;
+
+  document.getElementById("modeBarcode").style.background =
+    mode === "barcode" ? "#22c55e" : "#1f2a44";
+
+  document.getElementById("modeAI").style.background =
+    mode === "ai" ? "#22c55e" : "#1f2a44";
+
+  document.getElementById("result").innerText =
+    "Mode: " + mode.toUpperCase();
 }
 
-loadAI();
+document.getElementById("modeBarcode").onclick = () => setModeUI("barcode");
+document.getElementById("modeAI").onclick = () => setModeUI("ai");
 
-// ================= BARCODE SCANNER =================
+setModeUI("barcode");
+
+// ================= BARCODE SCAN =================
 async function scanBarcode() {
-  barcodeReader = new ZXing.BrowserMultiFormatReader();
+  const codeReader = new ZXing.BrowserMultiFormatReader();
 
   try {
-    const result = await barcodeReader.decodeOnceFromVideoDevice(
-      undefined,
-      video
-    );
+    const result = await codeReader.decodeOnceFromVideoDevice(undefined, video);
 
     return {
       name: result.text,
-      category: "Barcode Item"
+      category: "Barcode"
     };
-
-  } catch (err) {
+  } catch {
     return null;
   }
 }
 
-// ================= AI DETECTION =================
+// ================= AI SCAN =================
 async function scanAI() {
   if (!model) return null;
 
-  const prediction = await model.detect(video);
+  const predictions = await model.detect(video);
 
-  if (prediction.length === 0) return null;
+  if (!predictions.length) return null;
 
-  const obj = prediction[0];
+  const obj = predictions[0];
 
   return {
     name: obj.class,
-    category: "AI Detected"
+    category: "AI Vision"
   };
 }
 
-// ================= PUTER FALLBACK =================
-async function scanPuter(image) {
-  try {
-    if (!window.puter?.ai) return null;
+// ================= MANUAL FALLBACK =================
+function manualAdd() {
+  const name = prompt("Enter item name:");
+  if (!name) return null;
 
-    const res = await puter.ai.img2txt(image);
+  const category = prompt("Enter category:") || "Manual";
 
-    return {
-      name: res?.object || res?.name || res?.text || "Unknown",
-      category: res?.category || "AI"
-    };
-
-  } catch (e) {
-    return null;
-  }
+  return { name, category };
 }
 
 // ================= MAIN SCAN =================
 document.getElementById("scanBtn").onclick = async () => {
-
   const resultBox = document.getElementById("result");
 
   resultBox.innerText = "Scanning...";
 
-  // 1. BARCODE FIRST (BEST ACCURACY)
-  const barcode = await scanBarcode();
-  if (barcode) {
-    window.currentItem = barcode;
-    resultBox.innerText = JSON.stringify(barcode, null, 2);
+  window.currentItem = null;
+
+  // FORCE VIDEO READY
+  await new Promise(r => setTimeout(r, 1200));
+
+  let item = null;
+
+  // MODE LOGIC
+  if (window.currentMode === "barcode") {
+    item = await scanBarcode();
+  }
+
+  if (window.currentMode === "ai") {
+    item = await scanAI();
+  }
+
+  // IF NOTHING FOUND → manual fallback
+  if (!item) {
+    resultBox.innerText = "Not detected → Manual mode";
+
+    if (confirm("Item not detected. Add manually?")) {
+      item = manualAdd();
+    }
+  }
+
+  if (!item) {
+    resultBox.innerText = "No item added";
     return;
   }
 
-  // 2. AI DETECTION (COCO-SSD)
-  const ai = await scanAI();
-  if (ai) {
-    window.currentItem = ai;
-    resultBox.innerText = JSON.stringify(ai, null, 2);
-    return;
-  }
+  window.currentItem = item;
 
-  // 3. PUTER FALLBACK
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-
-  ctx.drawImage(video, 0, 0);
-
-  const image = canvas.toDataURL("image/jpeg");
-
-  const fallback = await scanPuter(image);
-
-  if (fallback) {
-    window.currentItem = fallback;
-    resultBox.innerText = JSON.stringify(fallback, null, 2);
-    return;
-  }
-
-  resultBox.innerText = "No item detected";
-};
-
-// ================= MODE TOGGLE =================
-document.getElementById("modeAI").onclick = () => {
-  aiMode = true;
-  alert("AI Mode Enabled");
-};
-
-document.getElementById("modeBarcode").onclick = () => {
-  aiMode = false;
-  alert("Barcode Mode Enabled");
+  resultBox.innerText = JSON.stringify(item, null, 2);
 };
