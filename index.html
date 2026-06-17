@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>Inventory Pro Scanner</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+
+<!-- Puter AI (fallback vision) -->
+<script src="https://js.puter.com/v2/"></script>
+
+<!-- Excel export -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<!-- Barcode scanner -->
+<script src="https://unpkg.com/@zxing/library@latest"></script>
+
+<!-- TensorFlow COCO-SSD -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+
+</head>
+
+<body>
+
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+
+<h2>📦 Inventory Pro</h2>
+
+<button id="modeBarcode">📷 Barcode Mode</button>
+<button id="modeAI">🧠 AI Vision Mode</button>
+
+<button id="switchCam">🔄 Switch Camera</button>
+
+<hr>
+
+<input id="search" placeholder="Search item...">
+
+<button id="exportExcel">📤 Export Excel</button>
+
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- CAMERA -->
+<section class="cameraCard">
+
+<video id="video" autoplay playsinline></video>
+<canvas id="canvas" hidden></canvas>
+
+<div class="scanButtons">
+
+<button id="scanBtn">📷 Scan</button>
+
+<button id="addBtn">➕ Add</button>
+<button id="removeBtn">➖ Remove</button>
+<button id="deleteBtn">🗑 Delete</button>
+
+</div>
+
+</section>
+
+<!-- DETECTED INFO -->
+<section class="infoCard">
+
+<h3>Detected Item</h3>
+
+<pre id="result">Waiting for scan...</pre>
+
+</section>
+
+<!-- INVENTORY TABLE -->
+<section class="tableCard">
+
+<h3>Inventory</h3>
+
+<table>
+
+<thead>
+<tr>
+<th>Name</th>
+<th>Category</th>
+<th>Qty</th>
+<th>Action</th>
+</tr>
+</thead>
+
+<tbody id="tableBody"></tbody>
+
+</table>
+
+</section>
+
+</main>
+
+</div>
+
+<script src="js/inventory.js"></script>
+<script src="js/barcode.js"></script>
+<script src="js/vision.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
